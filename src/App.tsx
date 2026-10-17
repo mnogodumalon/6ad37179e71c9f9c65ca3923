@@ -14,6 +14,12 @@ import { IntentPolicyLoader } from '@/components/IntentPolicyLoader';
 import IntentsAdmin from '@/pages/IntentsAdmin';
 import AppMap from '@/pages/AppMap';
 // <custom:imports>
+const IntentAnfrageAufnehmenPage = lazy(() => import('@/pages/intents/AnfrageAufnehmenPage'));
+import { DashboardSkeleton } from '@/components/DashboardStates';
+const IntentAnforderungenUndPunkteErfassenPage = lazy(() => import('@/pages/intents/AnforderungenUndPunkteErfassenPage'));
+const IntentRueckfrageVorbereitenPage = lazy(() => import('@/pages/intents/RueckfrageVorbereitenPage'));
+const IntentBeurteilungUndEntscheidungPage = lazy(() => import('@/pages/intents/BeurteilungUndEntscheidungPage'));
+const IntentTechnischenAbschlussPruefenPage = lazy(() => import('@/pages/intents/TechnischenAbschlussPruefenPage'));
 // </custom:imports>
 
 // Lazy: public pages live outside <Layout> and only load on /#/public/:slug —
@@ -85,6 +91,11 @@ export default function App() {
                 <Route path="verwaltung/oeffentliche-seiten" element={<PublicPagesAdmin />} />
                 <Route path="verwaltung/oeffentliche-seiten/:slug/felder" element={<PublicPageFields />} />
                 {/* <custom:routes> */}
+                <Route path="intents/anfrage-aufnehmen" element={<Suspense fallback={<DashboardSkeleton />}><IntentAnfrageAufnehmenPage /></Suspense>} />
+                <Route path="intents/anforderungen-und-punkte-erfassen" element={<Suspense fallback={<DashboardSkeleton />}><IntentAnforderungenUndPunkteErfassenPage /></Suspense>} />
+                <Route path="intents/rueckfrage-vorbereiten" element={<Suspense fallback={<DashboardSkeleton />}><IntentRueckfrageVorbereitenPage /></Suspense>} />
+                <Route path="intents/beurteilung-und-entscheidung" element={<Suspense fallback={<DashboardSkeleton />}><IntentBeurteilungUndEntscheidungPage /></Suspense>} />
+                <Route path="intents/technischen-abschluss-pruefen" element={<Suspense fallback={<DashboardSkeleton />}><IntentTechnischenAbschlussPruefenPage /></Suspense>} />
                 {/* </custom:routes> */}
                 {/* An unknown hash (a bookmark from before a rebuild renamed the
                     flows, a mistyped link) must not be a blank page. */}

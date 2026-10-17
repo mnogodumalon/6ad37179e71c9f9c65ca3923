@@ -20,6 +20,7 @@
 import type { ComponentType } from 'react';
 
 // <custom:intent-imports>
+import { IconFilePlus, IconListCheck, IconMailForward, IconScale, IconClipboardCheck } from '@tabler/icons-react';
 // </custom:intent-imports>
 
 export interface IntentLink {
@@ -42,6 +43,11 @@ export interface IntentLink {
 
 export const INTENTS: IntentLink[] = [
   // <custom:intents>
+  { path: '/intents/anfrage-aufnehmen', label: { de: 'Anfrage aufnehmen', en: 'Record inquiry' }, icon: IconFilePlus, description: 'Kunde wählen, Anfrage erfassen, erste Quelle zuordnen und Verantwortlichen sowie Priorität festlegen.' },
+  { path: '/intents/anforderungen-und-punkte-erfassen', label: { de: 'Anforderungen und offene Punkte erfassen', en: 'Capture requirements and open points' }, icon: IconListCheck, description: 'Zu einer Anfrage eine Anforderung anlegen, mit Quellen verknüpfen und bei Lücken oder Widersprüchen einen offenen Punkt samt Aufgabe erzeugen.' },
+  { path: '/intents/rueckfrage-vorbereiten', label: { de: 'Rückfrage vorbereiten', en: 'Prepare inquiry message' }, icon: IconMailForward, description: 'Offene Punkte wählen, zu einer Rückfrage bündeln und als nicht versendeten Entwurf anlegen.' },
+  { path: '/intents/beurteilung-und-entscheidung', label: { de: 'Beurteilen und entscheiden', en: 'Assess and decide' }, icon: IconScale, description: 'Fachliche Beurteilung zu Anforderungen und offenen Punkten dokumentieren und die verbindliche Entscheidung mit Begründung festhalten. Das System erteilt keine Freigabe.' },
+  { path: '/intents/technischen-abschluss-pruefen', label: { de: 'Technischen Abschluss prüfen', en: 'Check technical closure' }, icon: IconClipboardCheck, description: 'Voraussetzungen prüfen, Restabweichungen und Risiken dokumentieren, Übergabe vorbereiten und die Anfrage als technisch geklärt setzen. Die Freigabe trägt eine Person ein.' },
   // </custom:intents>
 ];
 
@@ -52,7 +58,7 @@ export const INTENTS: IntentLink[] = [
  * purpose — a scaffold update resets it to false (self-healing if Phase 2
  * never ran).
  */
-export const INTENTS_PENDING = true;
+export const INTENTS_PENDING = false;
 
 /**
  * When the Phase-1 bundle was deployed (ISO, set by the service together with
