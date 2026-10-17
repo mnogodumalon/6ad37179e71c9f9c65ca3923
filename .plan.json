@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "language": "de",
+  "understanding": {
+    "summary": "Die Anwendung begleitet die technische Auftragsklärung: von der Kundenanfrage über Quellen, Anforderungen, offene Punkte, Aufgaben, Rückfragen, Beurteilungen und Entscheidungen bis zum dokumentierten technischen Abschluss. Erfahrungen aus Vorhaben werden gesichert und bei späteren Anfragen auf Wiederverwendung geprüft. Freigaben erteilt nie das System, sondern immer eine verantwortliche Person.",
+    "roles": [
+      "Sachbearbeiter Auftragsklärung",
+      "Fachabteilung / technische Prüfer",
+      "Entscheidungsverantwortliche",
+      "Leitung / Administrator"
+    ],
+    "main_tasks": [
+      "Kundenanfrage aufnehmen und Quellen erfassen",
+      "Technische Anforderungen strukturieren",
+      "Offene Punkte und Aufgaben mit Verantwortlichen anlegen",
+      "Rückfragen vorbereiten und Antworten zuordnen",
+      "Beurteilungen und Entscheidungen dokumentieren",
+      "Technischen Abschluss und Übergabe prüfen",
+      "Erfahrungen sichern und bei neuen Anfragen wiederverwenden"
+    ],
+    "platform_roles": [
+      {
+        "persona": "Sachbearbeiter Auftragsklärung",
+        "role": "standard",
+        "apps": [
+          "kunden",
+          "kundenanfragen",
+          "informationsquellen",
+          "technische_anforderungen",
+          "offene_punkte",
+          "aufgaben",
+          "rueckfragen_und_kommunikation",
+          "wiederverwendung_von_erfahrungen",
+          "entscheidungen"
+        ]
+      },
+      {
+        "persona": "Fachabteilung / technische Prüfer",
+        "role": "standard",
+        "apps": [
+          "technische_anforderungen",
+          "beurteilungen",
+          "offene_punkte",
+          "aufgaben",
+          "erfahrungen",
+          "informationsquellen",
+          "rueckfragen_und_kommunikation",
+          "kunden"
+        ]
+      },
+      {
+        "persona": "Entscheidungsverantwortliche",
+        "role": "datenverarbeitung",
+        "apps": [
+          "entscheidungen",
+          "technischer_abschluss",
+          "beurteilungen",
+          "kundenanfragen",
+          "kunden",
+          "informationsquellen",
+          "offene_punkte",
+          "rueckfragen_und_kommunikation"
+        ]
+      },
+      {
+        "persona": "Leitung / Administrator",
+        "role": "administrator",
+        "apps": [
+          "kunden",
+          "kundenanfragen",
+          "technischer_abschluss",
+          "informationsquellen",
+          "technische_anforderungen",
+          "offene_punkte",
+          "aufgaben",
+          "beurteilungen",
+          "rueckfragen_und_kommunikation",
+          "entscheidungen",
+          "erfahrungen",
+          "wiederverwendung_von_erfahrungen"
+        ]
+      }
+    ]
+  },
+  "flows": [
+    {
+      "slug": "anfrage-aufnehmen",
+      "label": {
+        "de": "Anfrage aufnehmen",
+        "en": "Record inquiry"
+      },
+      "description": "Kunde wählen, Anfrage erfassen, erste Quelle zuordnen und Verantwortlichen sowie Priorität festlegen.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "kundenanfragen",
+          "op": "create",
+          "when": "always",
+          "fields": {
+            "kunde": "picked",
+            "eingangsdatum": "derived:today",
+            "eingangskanal": "user",
+            "kundenreferenz": "user",
+            "produktfamilie": "user",
+            "produktvariante": "user",
+            "gewuenschte_menge": "user",
+            "gewuenschter_liefertermin": "user",
+            "anfragebeschreibung": "user",
+            "urspruengliche_kundenanforderungen": "user",
+            "prioritaet": "user",
+            "verantwortlicher": "user",
+            "zieltermin_klaerung": "user",
+            "status": "fixed:neu",
+            "vollstaendigkeit": "fixed:ungeprueft"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "informationsquellen",
+          "op": "create",
+          "when": "optional",
+          "fields": {
+            "anfrage": "picked",
+            "quellentyp": "user",
+            "titel": "user",
+            "datei": "user",
+            "referenz_url": "user",
+            "absender_oder_urheber": "user",
+            "quellendatum": "user",
+            "eingangsdatum": "derived:now"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `anfrage-aufnehmen` — Anfrage aufnehmen\nKunde wählen, Anfrage erfassen, erste Quelle zuordnen und Verantwortlichen sowie Priorität festlegen.\n\n## Your hook — import it, never rebuild what it owns\n`import { useAnfrageAufnehmenFlow } from '@/lib/journey/flows/AnfrageAufnehmen';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: kunde, anfrage), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Kunden auswählen\n2. Anfragebeschreibung und Kundenanforderungen erfassen\n3. Verantwortlichen, Priorität und Zieltermin festlegen\n4. Erste Quelle oder Unterlage erfassen\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- creates `kundenanfragen`:\n    - `kunde`: from the record the user picks in this flow\n    - `eingangsdatum`: derived: today() — set it in the plan step, never ask\n    - `eingangskanal`: the user enters it (bind it through the layer: form.field/…)\n    - `kundenreferenz`: the user enters it (bind it through the layer: form.field/…)\n    - `produktfamilie`: the user enters it (bind it through the layer: form.field/…)\n    - `produktvariante`: the user enters it (bind it through the layer: form.field/…)\n    - `gewuenschte_menge`: the user enters it (bind it through the layer: form.field/…)\n    - `gewuenschter_liefertermin`: the user enters it (bind it through the layer: form.field/…)\n    - `anfragebeschreibung`: the user enters it (bind it through the layer: form.field/…)\n    - `urspruengliche_kundenanforderungen`: the user enters it (bind it through the layer: form.field/…)\n    - `prioritaet`: the user enters it (bind it through the layer: form.field/…)\n    - `verantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `zieltermin_klaerung`: the user enters it (bind it through the layer: form.field/…)\n    - `status`: fixed value `neu` — set it in the plan step's values, never ask\n    - `vollstaendigkeit`: fixed value `ungeprueft` — set it in the plan step's values, never ask\n- creates `informationsquellen` (only when the flow needs it):\n    - `anfrage`: from the record the user picks in this flow\n    - `quellentyp`: the user enters it (bind it through the layer: form.field/…)\n    - `titel`: the user enters it (bind it through the layer: form.field/…)\n    - `datei`: the user enters it (bind it through the layer: form.field/…)\n    - `referenz_url`: the user enters it (bind it through the layer: form.field/…)\n    - `absender_oder_urheber`: the user enters it (bind it through the layer: form.field/…)\n    - `quellendatum`: the user enters it (bind it through the layer: form.field/…)\n    - `eingangsdatum`: derived: now() — set it in the plan step, never ask\n\n## Reads\n- `kunden` columns firmenname, kundennummer, ansprechpartner_nachname\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- required_context (field=`kundenanfragen.kunde`) — message: „Bitte zuerst einen Kunden wählen.“\n\n## Success page\n- shows: `kundenanfragen.anfragenummer`, `kundenanfragen.status`\n- next flows to offer: `anforderungen-und-punkte-erfassen`\n\n## Never write these — another flow or a tool owns them\n- `technische_anforderungen.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.bezeichnung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.anforderungstyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ursprung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.sollwert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.einheit` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.vergleichsoperator` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.min_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.max_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ist_pflichtanforderung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.pruefstatus` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_anforderungen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.kurztitel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.punktetyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.auswirkung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.zustaendige_rolle` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.erledigungskriterium` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.offener_punkt` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.titel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.erwartetes_ergebnis` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.aufgabentyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `rueckfragen_und_kommunikation.anfrage` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offener_punkt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offene_punkte` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kommunikationstyp` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kanal` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.absender` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.empfaenger` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.betreff` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.inhalt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erwartet_bis` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.versandstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwortstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erhalten_am` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antworttext` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.folgeklaerung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.loesung_oder_ergebnis` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abgeschlossen_am` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abschluss_durch` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.erneute_pruefung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.aenderungsgrund` (owner: intent `antwort-zuordnen`)\n- `beurteilungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.zugrunde_liegende_quellen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsart` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.einschaetzung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.fachliche_begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.annahmen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.unsicherheiten` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.empfehlung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.ist_ki_vorschlag` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.erstellt_von` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.pruefstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.zugrunde_liegende_beurteilungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.titel` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungstyp` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsverantwortlicher` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.kompetenz_geprueft` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsdatum` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.auflagen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.gueltig_bis` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.ersetzt_durch_entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `technischer_abschluss.anfrage` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.pruefdatum` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.geprueft_von` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.anforderungen_geprueft` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.kritische_punkte_geklaert` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.entscheidungen_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigaben_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_abweichungen` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_risiken` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabeempfaenger` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.zusammenfassung` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.klaerung_abgeschlossen_am` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.statusbegruendung` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    },
+    {
+      "slug": "anforderungen-und-punkte-erfassen",
+      "label": {
+        "de": "Anforderungen und offene Punkte erfassen",
+        "en": "Capture requirements and open points"
+      },
+      "description": "Zu einer Anfrage eine Anforderung anlegen, mit Quellen verknüpfen und bei Lücken oder Widersprüchen einen offenen Punkt samt Aufgabe erzeugen.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "technische_anforderungen",
+          "op": "create",
+          "when": "always",
+          "fields": {
+            "anfrage": "picked",
+            "quellen": "picked",
+            "bezeichnung": "user",
+            "beschreibung": "user",
+            "anforderungstyp": "user",
+            "ursprung": "user",
+            "sollwert": "user",
+            "einheit": "user",
+            "vergleichsoperator": "user",
+            "min_wert": "user",
+            "max_wert": "user",
+            "ist_pflichtanforderung": "user",
+            "verantwortlicher": "user",
+            "pruefstatus": "fixed:ungeprueft"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "offene_punkte",
+          "op": "create",
+          "when": "optional",
+          "fields": {
+            "anfrage": "picked",
+            "betroffene_anforderungen": "picked",
+            "betroffene_quellen": "picked",
+            "kurztitel": "user",
+            "beschreibung": "user",
+            "punktetyp": "user",
+            "prioritaet": "user",
+            "auswirkung": "user",
+            "zustaendige_rolle": "user",
+            "verantwortlicher": "user",
+            "faellig_am": "user",
+            "erledigungskriterium": "user",
+            "status": "fixed:neu"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "aufgaben",
+          "op": "create",
+          "when": "optional",
+          "fields": {
+            "anfrage": "picked",
+            "offener_punkt": "picked",
+            "titel": "user",
+            "beschreibung": "user",
+            "erwartetes_ergebnis": "user",
+            "aufgabentyp": "user",
+            "verantwortlicher": "user",
+            "prioritaet": "user",
+            "faellig_am": "user",
+            "status": "fixed:offen"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "kundenanfragen",
+          "op": "update",
+          "when": "always",
+          "fields": {
+            "status": "fixed:in_pruefung",
+            "vollstaendigkeit": "fixed:in_klaerung"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `anforderungen-und-punkte-erfassen` — Anforderungen und offene Punkte erfassen\nZu einer Anfrage eine Anforderung anlegen, mit Quellen verknüpfen und bei Lücken oder Widersprüchen einen offenen Punkt samt Aufgabe erzeugen.\n\n## Your hook — import it, never rebuild what it owns\n`import { useAnforderungenUndPunkteErfassenFlow } from '@/lib/journey/flows/AnforderungenUndPunkteErfassen';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: anfrage, quellen, anfrage, betroffene_anforderungen, betroffene_quellen, anfrage, offener_punkt), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. This flow CHANGES a record of `kundenanfragen`: `{...flow.picks.kundenanfragen.select} {...flow.pick('kundenanfragen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Anfrage wählen\n2. Anforderung mit Sollwert, Ursprung und Quellen erfassen\n3. Fehlende Angabe oder Widerspruch als offenen Punkt anlegen\n4. Verantwortlichen und Aufgabe festlegen\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- creates `technische_anforderungen`:\n    - `anfrage`: from the record the user picks in this flow\n    - `quellen`: from the record the user picks in this flow\n    - `bezeichnung`: the user enters it (bind it through the layer: form.field/…)\n    - `beschreibung`: the user enters it (bind it through the layer: form.field/…)\n    - `anforderungstyp`: the user enters it (bind it through the layer: form.field/…)\n    - `ursprung`: the user enters it (bind it through the layer: form.field/…)\n    - `sollwert`: the user enters it (bind it through the layer: form.field/…)\n    - `einheit`: the user enters it (bind it through the layer: form.field/…)\n    - `vergleichsoperator`: the user enters it (bind it through the layer: form.field/…)\n    - `min_wert`: the user enters it (bind it through the layer: form.field/…)\n    - `max_wert`: the user enters it (bind it through the layer: form.field/…)\n    - `ist_pflichtanforderung`: the user enters it (bind it through the layer: form.field/…)\n    - `verantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `pruefstatus`: fixed value `ungeprueft` — set it in the plan step's values, never ask\n- creates `offene_punkte` (only when the flow needs it):\n    - `anfrage`: from the record the user picks in this flow\n    - `betroffene_anforderungen`: from the record the user picks in this flow\n    - `betroffene_quellen`: from the record the user picks in this flow\n    - `kurztitel`: the user enters it (bind it through the layer: form.field/…)\n    - `beschreibung`: the user enters it (bind it through the layer: form.field/…)\n    - `punktetyp`: the user enters it (bind it through the layer: form.field/…)\n    - `prioritaet`: the user enters it (bind it through the layer: form.field/…)\n    - `auswirkung`: the user enters it (bind it through the layer: form.field/…)\n    - `zustaendige_rolle`: the user enters it (bind it through the layer: form.field/…)\n    - `verantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `faellig_am`: the user enters it (bind it through the layer: form.field/…)\n    - `erledigungskriterium`: the user enters it (bind it through the layer: form.field/…)\n    - `status`: fixed value `neu` — set it in the plan step's values, never ask\n- creates `aufgaben` (only when the flow needs it):\n    - `anfrage`: from the record the user picks in this flow\n    - `offener_punkt`: from the record the user picks in this flow\n    - `titel`: the user enters it (bind it through the layer: form.field/…)\n    - `beschreibung`: the user enters it (bind it through the layer: form.field/…)\n    - `erwartetes_ergebnis`: the user enters it (bind it through the layer: form.field/…)\n    - `aufgabentyp`: the user enters it (bind it through the layer: form.field/…)\n    - `verantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `prioritaet`: the user enters it (bind it through the layer: form.field/…)\n    - `faellig_am`: the user enters it (bind it through the layer: form.field/…)\n    - `status`: fixed value `offen` — set it in the plan step's values, never ask\n- updates `kundenanfragen`:\n    - `status`: fixed value `in_pruefung` — set it in the plan step's values, never ask\n    - `vollstaendigkeit`: fixed value `in_klaerung` — set it in the plan step's values, never ask\n\n## Reads\n- `informationsquellen` columns titel, quellentyp, quellenstatus\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- required_context (field=`kundenanfragen.kunde`) — message: „Bitte zuerst einen Kunden wählen.“\n\n## Success page\n- shows: `offene_punkte.kurztitel`, `technische_anforderungen.bezeichnung`\n- next flows to offer: `rueckfrage-vorbereiten`\n\n## Never write these — another flow or a tool owns them\n- `kundenanfragen.kunde` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangskanal` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.kundenreferenz` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktfamilie` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktvariante` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschte_menge` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschter_liefertermin` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.anfragebeschreibung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.urspruengliche_kundenanforderungen` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.prioritaet` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.verantwortlicher` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.zieltermin_klaerung` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.anfrage` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellentyp` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.titel` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.datei` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.referenz_url` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.absender_oder_urheber` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellendatum` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `rueckfragen_und_kommunikation.anfrage` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offener_punkt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offene_punkte` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kommunikationstyp` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kanal` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.absender` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.empfaenger` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.betreff` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.inhalt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erwartet_bis` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.versandstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwortstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erhalten_am` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antworttext` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.folgeklaerung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.loesung_oder_ergebnis` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abgeschlossen_am` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abschluss_durch` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.erneute_pruefung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.aenderungsgrund` (owner: intent `antwort-zuordnen`)\n- `beurteilungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.zugrunde_liegende_quellen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsart` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.einschaetzung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.fachliche_begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.annahmen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.unsicherheiten` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.empfehlung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.ist_ki_vorschlag` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.erstellt_von` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.pruefstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.zugrunde_liegende_beurteilungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.titel` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungstyp` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsverantwortlicher` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.kompetenz_geprueft` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsdatum` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.auflagen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.gueltig_bis` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.ersetzt_durch_entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `technischer_abschluss.anfrage` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.pruefdatum` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.geprueft_von` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.anforderungen_geprueft` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.kritische_punkte_geklaert` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.entscheidungen_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigaben_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_abweichungen` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_risiken` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabeempfaenger` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.zusammenfassung` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.klaerung_abgeschlossen_am` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.statusbegruendung` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    },
+    {
+      "slug": "rueckfrage-vorbereiten",
+      "label": {
+        "de": "Rückfrage vorbereiten",
+        "en": "Prepare inquiry message"
+      },
+      "description": "Offene Punkte wählen, zu einer Rückfrage bündeln und als nicht versendeten Entwurf anlegen.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "rueckfragen_und_kommunikation",
+          "op": "create",
+          "when": "always",
+          "fields": {
+            "anfrage": "picked",
+            "offener_punkt": "picked",
+            "offene_punkte": "picked",
+            "kommunikationstyp": "user",
+            "kanal": "user",
+            "absender": "user",
+            "empfaenger": "user",
+            "betreff": "user",
+            "inhalt": "user",
+            "antwort_erwartet_bis": "user",
+            "versandstatus": "fixed:entwurf",
+            "antwortstatus": "fixed:offen"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "kundenanfragen",
+          "op": "update",
+          "when": "optional",
+          "fields": {
+            "status": "fixed:rueckfragen_offen"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `rueckfrage-vorbereiten` — Rückfrage vorbereiten\nOffene Punkte wählen, zu einer Rückfrage bündeln und als nicht versendeten Entwurf anlegen.\n\n## Your hook — import it, never rebuild what it owns\n`import { useRueckfrageVorbereitenFlow } from '@/lib/journey/flows/RueckfrageVorbereiten';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: anfrage, offener_punkt, offene_punkte), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. This flow CHANGES a record of `kundenanfragen`: `{...flow.picks.kundenanfragen.select} {...flow.pick('kundenanfragen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Anfrage wählen\n2. Offene Punkte für denselben Empfänger bündeln\n3. Betreff, Inhalt und Empfänger festlegen\n4. Entwurf zur Prüfung speichern\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- creates `rueckfragen_und_kommunikation`:\n    - `anfrage`: from the record the user picks in this flow\n    - `offener_punkt`: from the record the user picks in this flow\n    - `offene_punkte`: from the record the user picks in this flow\n    - `kommunikationstyp`: the user enters it (bind it through the layer: form.field/…)\n    - `kanal`: the user enters it (bind it through the layer: form.field/…)\n    - `absender`: the user enters it (bind it through the layer: form.field/…)\n    - `empfaenger`: the user enters it (bind it through the layer: form.field/…)\n    - `betreff`: the user enters it (bind it through the layer: form.field/…)\n    - `inhalt`: the user enters it (bind it through the layer: form.field/…)\n    - `antwort_erwartet_bis`: the user enters it (bind it through the layer: form.field/…)\n    - `versandstatus`: fixed value `entwurf` — set it in the plan step's values, never ask\n    - `antwortstatus`: fixed value `offen` — set it in the plan step's values, never ask\n- updates `kundenanfragen` (only when the flow needs it):\n    - `status`: fixed value `rueckfragen_offen` — set it in the plan step's values, never ask\n\n## Reads\n- `offene_punkte` columns kurztitel, prioritaet, status, verantwortlicher, faellig_am\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- required_context (field=`kundenanfragen.kunde`) — message: „Bitte zuerst einen Kunden wählen.“\n\n## Success page\n- shows: `rueckfragen_und_kommunikation.betreff`, `rueckfragen_und_kommunikation.versandstatus`\n- next flows to offer: `antwort-zuordnen`\n\n## Never write these — another flow or a tool owns them\n- `kundenanfragen.kunde` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangskanal` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.kundenreferenz` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktfamilie` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktvariante` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschte_menge` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschter_liefertermin` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.anfragebeschreibung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.urspruengliche_kundenanforderungen` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.prioritaet` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.verantwortlicher` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.zieltermin_klaerung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.vollstaendigkeit` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.anfrage` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellentyp` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.titel` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.datei` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.referenz_url` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.absender_oder_urheber` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellendatum` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `technische_anforderungen.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.bezeichnung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.anforderungstyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ursprung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.sollwert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.einheit` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.vergleichsoperator` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.min_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.max_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ist_pflichtanforderung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.pruefstatus` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_anforderungen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.kurztitel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.punktetyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.auswirkung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.zustaendige_rolle` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.erledigungskriterium` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.offener_punkt` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.titel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.erwartetes_ergebnis` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.aufgabentyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `rueckfragen_und_kommunikation.antwort_erhalten_am` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antworttext` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.folgeklaerung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.loesung_oder_ergebnis` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abgeschlossen_am` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abschluss_durch` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.erneute_pruefung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.aenderungsgrund` (owner: intent `antwort-zuordnen`)\n- `beurteilungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.zugrunde_liegende_quellen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsart` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.einschaetzung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.fachliche_begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.annahmen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.unsicherheiten` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.empfehlung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.ist_ki_vorschlag` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.erstellt_von` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.pruefstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.zugrunde_liegende_beurteilungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.titel` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungstyp` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsverantwortlicher` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.kompetenz_geprueft` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsdatum` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.auflagen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.gueltig_bis` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.ersetzt_durch_entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `technischer_abschluss.anfrage` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.pruefdatum` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.geprueft_von` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.anforderungen_geprueft` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.kritische_punkte_geklaert` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.entscheidungen_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigaben_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_abweichungen` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_risiken` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabeempfaenger` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.zusammenfassung` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.klaerung_abgeschlossen_am` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.statusbegruendung` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    },
+    {
+      "slug": "antwort-zuordnen",
+      "label": {
+        "de": "Antwort zuordnen",
+        "en": "Assign reply"
+      },
+      "description": "Eine eingegangene Antwort der Rückfrage zuordnen, Vollständigkeit einstufen und bei Bedarf Folgeaufgabe oder erneute Prüfung auslösen. Der offene Punkt wird erst nach fachlicher Prüfung erledigt.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "rueckfragen_und_kommunikation",
+          "op": "update",
+          "when": "always",
+          "fields": {
+            "antwort_erhalten_am": "derived:now",
+            "antwortstatus": "user",
+            "antworttext": "user",
+            "antwort_geprueft": "user",
+            "folgeklaerung_erforderlich": "user"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "offene_punkte",
+          "op": "update",
+          "when": "optional",
+          "fields": {
+            "antwort_geprueft": "user",
+            "status": "user",
+            "loesung_oder_ergebnis": "user",
+            "abgeschlossen_am": "derived:now",
+            "abschluss_durch": "user"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "aufgaben",
+          "op": "create",
+          "when": "optional",
+          "fields": {
+            "anfrage": "picked",
+            "offener_punkt": "picked",
+            "titel": "user",
+            "erwartetes_ergebnis": "user",
+            "verantwortlicher": "user",
+            "status": "fixed:offen"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "technische_anforderungen",
+          "op": "update",
+          "when": "optional",
+          "fields": {
+            "erneute_pruefung_erforderlich": "fixed:true",
+            "aenderungsgrund": "user",
+            "pruefstatus": "user"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `antwort-zuordnen` — Antwort zuordnen\nEine eingegangene Antwort der Rückfrage zuordnen, Vollständigkeit einstufen und bei Bedarf Folgeaufgabe oder erneute Prüfung auslösen. Der offene Punkt wird erst nach fachlicher Prüfung erledigt.\n\n## Your hook — import it, never rebuild what it owns\n`import { useAntwortZuordnenFlow } from '@/lib/journey/flows/AntwortZuordnen';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: anfrage, offener_punkt), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. This flow CHANGES a record of `rueckfragen_und_kommunikation`: `{...flow.picks.rueckfragen_und_kommunikation.select} {...flow.pick('rueckfragen_und_kommunikation')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. This flow CHANGES a record of `offene_punkte`: `{...flow.picks.offene_punkte.select} {...flow.pick('offene_punkte')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. This flow CHANGES a record of `technische_anforderungen`: `{...flow.picks.technische_anforderungen.select} {...flow.pick('technische_anforderungen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Rückfrage wählen\n2. Antworttext und Eingang erfassen\n3. Antwortstatus einstufen\n4. Folgeklärung als Aufgabe anlegen, falls nötig\n5. Betroffene Anforderung zur erneuten Prüfung markieren\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- updates `rueckfragen_und_kommunikation`:\n    - `antwort_erhalten_am`: derived: now() — set it in the plan step, never ask\n    - `antwortstatus`: the user enters it (bind it through the layer: form.field/…)\n    - `antworttext`: the user enters it (bind it through the layer: form.field/…)\n    - `antwort_geprueft`: the user enters it (bind it through the layer: form.field/…)\n    - `folgeklaerung_erforderlich`: the user enters it (bind it through the layer: form.field/…)\n- updates `offene_punkte` (only when the flow needs it):\n    - `antwort_geprueft`: the user enters it (bind it through the layer: form.field/…)\n    - `status`: the user enters it (bind it through the layer: form.field/…)\n    - `loesung_oder_ergebnis`: the user enters it (bind it through the layer: form.field/…)\n    - `abgeschlossen_am`: derived: now() — set it in the plan step, never ask\n    - `abschluss_durch`: the user enters it (bind it through the layer: form.field/…)\n- creates `aufgaben` (only when the flow needs it):\n    - `anfrage`: from the record the user picks in this flow\n    - `offener_punkt`: from the record the user picks in this flow\n    - `titel`: the user enters it (bind it through the layer: form.field/…)\n    - `erwartetes_ergebnis`: the user enters it (bind it through the layer: form.field/…)\n    - `verantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `status`: fixed value `offen` — set it in the plan step's values, never ask\n- updates `technische_anforderungen` (only when the flow needs it):\n    - `erneute_pruefung_erforderlich`: fixed value `true` — set it in the plan step's values, never ask\n    - `aenderungsgrund`: the user enters it (bind it through the layer: form.field/…)\n    - `pruefstatus`: the user enters it (bind it through the layer: form.field/…)\n\n## Reads\n- `rueckfragen_und_kommunikation` columns betreff, empfaenger, versandstatus, antwortstatus\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- required_context (field=`kundenanfragen.kunde`) — message: „Bitte zuerst einen Kunden wählen.“\n\n## Success page\n- shows: `rueckfragen_und_kommunikation.antwortstatus`, `offene_punkte.status`\n- next flows to offer: `beurteilung-und-entscheidung`\n\n## Never write these — another flow or a tool owns them\n- `kundenanfragen.kunde` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangskanal` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.kundenreferenz` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktfamilie` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktvariante` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschte_menge` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschter_liefertermin` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.anfragebeschreibung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.urspruengliche_kundenanforderungen` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.prioritaet` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.verantwortlicher` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.zieltermin_klaerung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.status` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.vollstaendigkeit` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.anfrage` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellentyp` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.titel` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.datei` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.referenz_url` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.absender_oder_urheber` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellendatum` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `technische_anforderungen.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.bezeichnung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.anforderungstyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ursprung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.sollwert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.einheit` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.vergleichsoperator` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.min_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.max_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ist_pflichtanforderung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_anforderungen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.kurztitel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.punktetyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.auswirkung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.zustaendige_rolle` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.erledigungskriterium` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.aufgabentyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `rueckfragen_und_kommunikation.anfrage` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offener_punkt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offene_punkte` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kommunikationstyp` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kanal` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.absender` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.empfaenger` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.betreff` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.inhalt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erwartet_bis` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.versandstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `beurteilungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.zugrunde_liegende_quellen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsart` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.einschaetzung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.fachliche_begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.annahmen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.unsicherheiten` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.empfehlung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.ist_ki_vorschlag` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.erstellt_von` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.pruefstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.zugrunde_liegende_beurteilungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.titel` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungstyp` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsverantwortlicher` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.kompetenz_geprueft` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsdatum` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.auflagen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.gueltig_bis` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.ersetzt_durch_entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `technischer_abschluss.anfrage` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.pruefdatum` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.geprueft_von` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.anforderungen_geprueft` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.kritische_punkte_geklaert` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.entscheidungen_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigaben_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_abweichungen` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_risiken` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabeempfaenger` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.zusammenfassung` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.klaerung_abgeschlossen_am` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.statusbegruendung` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    },
+    {
+      "slug": "beurteilung-und-entscheidung",
+      "label": {
+        "de": "Beurteilen und entscheiden",
+        "en": "Assess and decide"
+      },
+      "description": "Fachliche Beurteilung zu Anforderungen und offenen Punkten dokumentieren und die verbindliche Entscheidung mit Begründung festhalten. Das System erteilt keine Freigabe.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "beurteilungen",
+          "op": "create",
+          "when": "always",
+          "fields": {
+            "anfrage": "picked",
+            "betroffene_anforderungen": "picked",
+            "betroffene_offene_punkte": "picked",
+            "zugrunde_liegende_quellen": "picked",
+            "beurteilungsgegenstand": "user",
+            "beurteilungsart": "user",
+            "einschaetzung": "user",
+            "fachliche_begruendung": "user",
+            "annahmen": "user",
+            "unsicherheiten": "user",
+            "alternativen": "user",
+            "empfehlung": "user",
+            "ist_ki_vorschlag": "user",
+            "erstellt_von": "user",
+            "pruefstatus": "fixed:entwurf"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "entscheidungen",
+          "op": "create",
+          "when": "optional",
+          "fields": {
+            "anfrage": "picked",
+            "betroffene_anforderungen": "picked",
+            "betroffene_offene_punkte": "picked",
+            "zugrunde_liegende_beurteilungen": "picked",
+            "titel": "user",
+            "entscheidungsgegenstand": "user",
+            "entscheidungstyp": "user",
+            "alternativen": "user",
+            "entscheidung": "user",
+            "begruendung": "user",
+            "entscheidungsverantwortlicher": "user",
+            "kompetenz_geprueft": "user",
+            "entscheidungsstatus": "user",
+            "entscheidungsdatum": "derived:now",
+            "auflagen": "user",
+            "gueltig_bis": "user"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "entscheidungen",
+          "op": "update",
+          "when": "optional",
+          "fields": {
+            "ersetzt_durch_entscheidung": "picked",
+            "entscheidungsstatus": "fixed:ersetzt"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "kundenanfragen",
+          "op": "update",
+          "when": "optional",
+          "fields": {
+            "status": "fixed:entscheidungsbedarf"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `beurteilung-und-entscheidung` — Beurteilen und entscheiden\nFachliche Beurteilung zu Anforderungen und offenen Punkten dokumentieren und die verbindliche Entscheidung mit Begründung festhalten. Das System erteilt keine Freigabe.\n\n## Your hook — import it, never rebuild what it owns\n`import { useBeurteilungUndEntscheidungFlow } from '@/lib/journey/flows/BeurteilungUndEntscheidung';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: anfrage, betroffene_anforderungen, betroffene_offene_punkte, zugrunde_liegende_quellen, anfrage, betroffene_anforderungen, betroffene_offene_punkte, zugrunde_liegende_beurteilungen, ersetzt_durch_entscheidung), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. This flow CHANGES a record of `entscheidungen`: `{...flow.picks.entscheidungen.select} {...flow.pick('entscheidungen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. This flow CHANGES a record of `kundenanfragen`: `{...flow.picks.kundenanfragen.select} {...flow.pick('kundenanfragen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Anfrage und betroffene Anforderungen oder Punkte wählen\n2. Beurteilung mit Begründung, Annahmen und Unsicherheiten erfassen\n3. Entscheidung mit Verantwortlichem und Begründung anlegen\n4. Ersetzte Entscheidung ggf. als ersetzt kennzeichnen\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- creates `beurteilungen`:\n    - `anfrage`: from the record the user picks in this flow\n    - `betroffene_anforderungen`: from the record the user picks in this flow\n    - `betroffene_offene_punkte`: from the record the user picks in this flow\n    - `zugrunde_liegende_quellen`: from the record the user picks in this flow\n    - `beurteilungsgegenstand`: the user enters it (bind it through the layer: form.field/…)\n    - `beurteilungsart`: the user enters it (bind it through the layer: form.field/…)\n    - `einschaetzung`: the user enters it (bind it through the layer: form.field/…)\n    - `fachliche_begruendung`: the user enters it (bind it through the layer: form.field/…)\n    - `annahmen`: the user enters it (bind it through the layer: form.field/…)\n    - `unsicherheiten`: the user enters it (bind it through the layer: form.field/…)\n    - `alternativen`: the user enters it (bind it through the layer: form.field/…)\n    - `empfehlung`: the user enters it (bind it through the layer: form.field/…)\n    - `ist_ki_vorschlag`: the user enters it (bind it through the layer: form.field/…)\n    - `erstellt_von`: the user enters it (bind it through the layer: form.field/…)\n    - `pruefstatus`: fixed value `entwurf` — set it in the plan step's values, never ask\n- creates `entscheidungen` (only when the flow needs it):\n    - `anfrage`: from the record the user picks in this flow\n    - `betroffene_anforderungen`: from the record the user picks in this flow\n    - `betroffene_offene_punkte`: from the record the user picks in this flow\n    - `zugrunde_liegende_beurteilungen`: from the record the user picks in this flow\n    - `titel`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungsgegenstand`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungstyp`: the user enters it (bind it through the layer: form.field/…)\n    - `alternativen`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidung`: the user enters it (bind it through the layer: form.field/…)\n    - `begruendung`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungsverantwortlicher`: the user enters it (bind it through the layer: form.field/…)\n    - `kompetenz_geprueft`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungsstatus`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungsdatum`: derived: now() — set it in the plan step, never ask\n    - `auflagen`: the user enters it (bind it through the layer: form.field/…)\n    - `gueltig_bis`: the user enters it (bind it through the layer: form.field/…)\n- updates `entscheidungen` (only when the flow needs it):\n    - `ersetzt_durch_entscheidung`: from the record the user picks in this flow\n    - `entscheidungsstatus`: fixed value `ersetzt` — set it in the plan step's values, never ask\n- updates `kundenanfragen` (only when the flow needs it):\n    - `status`: fixed value `entscheidungsbedarf` — set it in the plan step's values, never ask\n\n## Reads\n- `offene_punkte` columns kurztitel, prioritaet, status\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- required_context (field=`kundenanfragen.kunde`) — message: „Bitte zuerst einen Kunden wählen.“\n\n## Success page\n- shows: `beurteilungen.pruefstatus`, `entscheidungen.entscheidungsstatus`\n- next flows to offer: `technischen-abschluss-pruefen`\n\n## Never write these — another flow or a tool owns them\n- `kundenanfragen.kunde` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangskanal` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.kundenreferenz` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktfamilie` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktvariante` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschte_menge` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschter_liefertermin` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.anfragebeschreibung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.urspruengliche_kundenanforderungen` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.prioritaet` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.verantwortlicher` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.zieltermin_klaerung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.vollstaendigkeit` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.anfrage` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellentyp` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.titel` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.datei` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.referenz_url` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.absender_oder_urheber` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellendatum` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `technische_anforderungen.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.bezeichnung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.anforderungstyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ursprung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.sollwert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.einheit` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.vergleichsoperator` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.min_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.max_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ist_pflichtanforderung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.pruefstatus` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_anforderungen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.kurztitel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.punktetyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.auswirkung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.zustaendige_rolle` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.erledigungskriterium` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.offener_punkt` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.titel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.erwartetes_ergebnis` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.aufgabentyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `rueckfragen_und_kommunikation.anfrage` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offener_punkt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offene_punkte` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kommunikationstyp` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kanal` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.absender` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.empfaenger` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.betreff` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.inhalt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erwartet_bis` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.versandstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwortstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erhalten_am` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antworttext` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.folgeklaerung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.loesung_oder_ergebnis` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abgeschlossen_am` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abschluss_durch` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.erneute_pruefung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.aenderungsgrund` (owner: intent `antwort-zuordnen`)\n- `technischer_abschluss.anfrage` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.pruefdatum` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.geprueft_von` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.anforderungen_geprueft` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.kritische_punkte_geklaert` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.entscheidungen_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigaben_vorhanden` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_abweichungen` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.verbleibende_risiken` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabeempfaenger` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.uebergabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.zusammenfassung` (owner: intent `technischen-abschluss-pruefen`)\n- `technischer_abschluss.freigabestatus` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.klaerung_abgeschlossen_am` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.statusbegruendung` (owner: intent `technischen-abschluss-pruefen`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    },
+    {
+      "slug": "technischen-abschluss-pruefen",
+      "label": {
+        "de": "Technischen Abschluss prüfen",
+        "en": "Check technical closure"
+      },
+      "description": "Voraussetzungen prüfen, Restabweichungen und Risiken dokumentieren, Übergabe vorbereiten und die Anfrage als technisch geklärt setzen. Die Freigabe trägt eine Person ein.",
+      "priority": "must",
+      "writes": [
+        {
+          "entity": "technischer_abschluss",
+          "op": "create",
+          "when": "always",
+          "fields": {
+            "anfrage": "picked",
+            "pruefdatum": "derived:now",
+            "geprueft_von": "user",
+            "anforderungen_geprueft": "user",
+            "kritische_punkte_geklaert": "user",
+            "entscheidungen_vorhanden": "user",
+            "freigaben_vorhanden": "user",
+            "verbleibende_abweichungen": "user",
+            "verbleibende_risiken": "user",
+            "uebergabeempfaenger": "user",
+            "uebergabestatus": "user",
+            "zusammenfassung": "user",
+            "freigabestatus": "user"
+          },
+          "needs": {}
+        },
+        {
+          "entity": "kundenanfragen",
+          "op": "update",
+          "when": "always",
+          "fields": {
+            "status": "fixed:technisch_geklaert",
+            "klaerung_abgeschlossen_am": "derived:now",
+            "vollstaendigkeit": "fixed:vollstaendig_geprueft",
+            "statusbegruendung": "user"
+          },
+          "needs": {}
+        }
+      ],
+      "required": [],
+      "brief": "# Flow `technischen-abschluss-pruefen` — Technischen Abschluss prüfen\nVoraussetzungen prüfen, Restabweichungen und Risiken dokumentieren, Übergabe vorbereiten und die Anfrage als technisch geklärt setzen. Die Freigabe trägt eine Person ein.\n\n## Your hook — import it, never rebuild what it owns\n`import { useTechnischenAbschlussPruefenFlow } from '@/lib/journey/flows/TechnischenAbschlussPruefen';` — generated from the Schreibliste below. It OWNS the form(s), one record search per picked field (columns and filter from the plan) and the submit plan with every fixed and derived value. You compose: `flow.forms.<entity>` for <Bound>/<Field>, `{...flow.picks.<field>.select} {...flow.pick('<field>')}` (or `flow.pickMany` for a multi pick) for <EntitySelectStep>, `flow.validateStep(n)` in StepNav.onNext, `flow.submit` + `flow.formList` for SummaryStep/SuccessStep, `flow.reset()`; what the hook does not own reads through its door `flow.port` — availability `useOccupancy(flow.port, '<entity>', { resource })`, a count `useRecordCount(flow.port, …)` — never import servicePort next to the hook. Options: `steps` (field → step), `items` (how a hit reads, per pick: anfrage), `initial`, `messages`. The hook's docblock in .lane-context.md shows the exact call. This flow CHANGES a record of `kundenanfragen`: `{...flow.picks.kundenanfragen.select} {...flow.pick('kundenanfragen')}` picks it, the hook prefills the form with its current values and updates THAT record — never a create step, never a list from useDashboardData. Never import servicePort, useStepForm, useJourneySubmit, useRecordSearch or useDashboardData in this page — check-intents refuses a page that uses the hook and any of them.\n\n## Steps (in this order)\n1. Anfrage wählen\n2. Kritische offene Punkte und Entscheidungen kontrollieren\n3. Abweichungen, Risiken und Zusammenfassung erfassen\n4. Übergabeempfänger festlegen\n5. Anfrage als technisch geklärt setzen\n\n## Schreibliste — the ONLY writes this flow makes (the gate compares your plan steps with this list)\n- creates `technischer_abschluss`:\n    - `anfrage`: from the record the user picks in this flow\n    - `pruefdatum`: derived: now() — set it in the plan step, never ask\n    - `geprueft_von`: the user enters it (bind it through the layer: form.field/…)\n    - `anforderungen_geprueft`: the user enters it (bind it through the layer: form.field/…)\n    - `kritische_punkte_geklaert`: the user enters it (bind it through the layer: form.field/…)\n    - `entscheidungen_vorhanden`: the user enters it (bind it through the layer: form.field/…)\n    - `freigaben_vorhanden`: the user enters it (bind it through the layer: form.field/…)\n    - `verbleibende_abweichungen`: the user enters it (bind it through the layer: form.field/…)\n    - `verbleibende_risiken`: the user enters it (bind it through the layer: form.field/…)\n    - `uebergabeempfaenger`: the user enters it (bind it through the layer: form.field/…)\n    - `uebergabestatus`: the user enters it (bind it through the layer: form.field/…)\n    - `zusammenfassung`: the user enters it (bind it through the layer: form.field/…)\n    - `freigabestatus`: the user enters it (bind it through the layer: form.field/…)\n- updates `kundenanfragen`:\n    - `status`: fixed value `technisch_geklaert` — set it in the plan step's values, never ask\n    - `klaerung_abgeschlossen_am`: derived: now() — set it in the plan step, never ask\n    - `vollstaendigkeit`: fixed value `vollstaendig_geprueft` — set it in the plan step's values, never ask\n    - `statusbegruendung`: the user enters it (bind it through the layer: form.field/…)\n\n## Reads\n- `offene_punkte` columns kurztitel, prioritaet, status, verantwortlicher\n- `entscheidungen` columns titel, entscheidungsstatus, kompetenz_geprueft\n\n## Checks BEFORE the write (block the submit with the message when they fail)\n- custom (entity=`offene_punkte`, rule=`Kein offener Punkt der Anfrage mit Priorität kritisch ohne Status erledigt, entschieden_akzeptiert oder nicht_mehr_relevant`) — message: „Es gibt noch ungeklärte kritische offene Punkte.“\n- unique (field=`technischer_abschluss.anfrage`) — message: „Für diese Anfrage existiert bereits ein technischer Abschluss.“\n\n## Success page\n- shows: `technischer_abschluss.freigabestatus`, `kundenanfragen.status`\n\n## Never write these — another flow or a tool owns them\n- `kundenanfragen.kunde` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.eingangskanal` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.kundenreferenz` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktfamilie` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.produktvariante` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschte_menge` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.gewuenschter_liefertermin` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.anfragebeschreibung` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.urspruengliche_kundenanforderungen` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.prioritaet` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.verantwortlicher` (owner: intent `anfrage-aufnehmen`)\n- `kundenanfragen.zieltermin_klaerung` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.anfrage` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellentyp` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.titel` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.datei` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.referenz_url` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.absender_oder_urheber` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.quellendatum` (owner: intent `anfrage-aufnehmen`)\n- `informationsquellen.eingangsdatum` (owner: intent `anfrage-aufnehmen`)\n- `technische_anforderungen.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.bezeichnung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.anforderungstyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ursprung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.sollwert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.einheit` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.vergleichsoperator` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.min_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.max_wert` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.ist_pflichtanforderung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `technische_anforderungen.pruefstatus` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_anforderungen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.betroffene_quellen` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.kurztitel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.punktetyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.auswirkung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.zustaendige_rolle` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.erledigungskriterium` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `offene_punkte.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.anfrage` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.offener_punkt` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.titel` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.beschreibung` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.erwartetes_ergebnis` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.aufgabentyp` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.verantwortlicher` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.prioritaet` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.faellig_am` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `aufgaben.status` (owner: intent `anforderungen-und-punkte-erfassen`)\n- `rueckfragen_und_kommunikation.anfrage` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offener_punkt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.offene_punkte` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kommunikationstyp` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.kanal` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.absender` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.empfaenger` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.betreff` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.inhalt` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erwartet_bis` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.versandstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwortstatus` (owner: intent `rueckfrage-vorbereiten`)\n- `rueckfragen_und_kommunikation.antwort_erhalten_am` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antworttext` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `rueckfragen_und_kommunikation.folgeklaerung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.antwort_geprueft` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.loesung_oder_ergebnis` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abgeschlossen_am` (owner: intent `antwort-zuordnen`)\n- `offene_punkte.abschluss_durch` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.erneute_pruefung_erforderlich` (owner: intent `antwort-zuordnen`)\n- `technische_anforderungen.aenderungsgrund` (owner: intent `antwort-zuordnen`)\n- `beurteilungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.zugrunde_liegende_quellen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.beurteilungsart` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.einschaetzung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.fachliche_begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.annahmen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.unsicherheiten` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.empfehlung` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.ist_ki_vorschlag` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.erstellt_von` (owner: intent `beurteilung-und-entscheidung`)\n- `beurteilungen.pruefstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.anfrage` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_anforderungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.betroffene_offene_punkte` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.zugrunde_liegende_beurteilungen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.titel` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsgegenstand` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungstyp` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.alternativen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.begruendung` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsverantwortlicher` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.kompetenz_geprueft` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsstatus` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.entscheidungsdatum` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.auflagen` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.gueltig_bis` (owner: intent `beurteilung-und-entscheidung`)\n- `entscheidungen.ersetzt_durch_entscheidung` (owner: intent `beurteilung-und-entscheidung`)\n- `kundenanfragen.anfragenummer` (owner: tool `anfragenummer-vergeben`)\n- `kunden.kundennummer` (owner: tool `kundennummer-vergeben`)\n- `aufgaben.abgeschlossen_am` (owner: tool `aufgaben-abschlusszeit-setzen`)\n- `informationsquellen.quellenstatus` (owner: tool `quelle-ersetzt-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_erforderlich` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n- `kundenanfragen.erneute_pruefung_grund` (owner: tool `anforderung-geaendert-pruefung-markieren`)\n"
+    }
+  ],
+  "public_pages": [],
+  "tools": [
+    {
+      "id": "anfragenummer-vergeben",
+      "purpose": "Vergibt beim Anlegen einer Kundenanfrage eine fortlaufende, lesbare Anfragenummer."
+    },
+    {
+      "id": "kundennummer-vergeben",
+      "purpose": "Vergibt beim Anlegen eines Kunden eine fortlaufende Kundennummer, falls keine eingetragen ist."
+    },
+    {
+      "id": "aufgaben-abschlusszeit-setzen",
+      "purpose": "Bei Bearbeitung einer Aufgabe: ist der Status erledigt und abgeschlossen_am leer, wird der Zeitpunkt gesetzt. Prüft den Status im Code."
+    },
+    {
+      "id": "quelle-ersetzt-pruefung-markieren",
+      "purpose": "Wird eine Informationsquelle bearbeitet und hat sie eine ersetzte Quelle, wird die ersetzte Quelle auf ersetzt gesetzt. Prüft das Feld ersetzt_quelle im Code."
+    },
+    {
+      "id": "ueberfaellige-aufgaben-melden",
+      "purpose": "Täglich eine Sammelmail an den Schlüsselinhaber über Aufgaben, deren Fälligkeit vorbei ist und die nicht erledigt oder abgebrochen sind."
+    },
+    {
+      "id": "kritische-punkte-melden",
+      "purpose": "Täglich eine Sammelmail über kritische offene Punkte, die noch nicht geklärt oder entschieden sind."
+    },
+    {
+      "id": "anforderung-geaendert-pruefung-markieren",
+      "purpose": "Wird eine Anforderung bearbeitet, markiert das Werkzeug die zugehörige Anfrage zur erneuten Prüfung. Betroffene Beurteilungen und Entscheidungen prüft eine Person."
+    }
+  ],
+  "covered_by_platform": [
+    {
+      "wish": "Tabellarische Übersichten, z. B. technischer Prüfbereich der Anforderungen",
+      "feature": "list_page"
+    },
+    {
+      "wish": "Suche und Filter nach Verantwortlichem, Kunde, Priorität, Status, Fälligkeit",
+      "feature": "search_filter"
+    },
+    {
+      "wish": "Erfahrungssuche nach Produktfamilie, Schlagwörtern, Anforderungstyp",
+      "feature": "search_filter"
+    },
+    {
+      "wish": "Einfache Auswertungen nach Kunde, Status, Zeitraum",
+      "feature": "distribution_view"
+    },
+    {
+      "wish": "Dokumente, Zeichnungen und Mails den Quellen zuordnen",
+      "feature": "record_attachments"
+    },
+    {
+      "wish": "Statusänderungen mit Zeitpunkt und Benutzer protokollieren",
+      "feature": "record_history"
+    },
+    {
+      "wish": "Kunden, Anforderungen und Quellen erfassen und bearbeiten",
+      "feature": "record_form"
+    },
+    {
+      "wish": "Export von Entwürfen oder Listen als Tabelle",
+      "feature": "csv_json_export"
+    },
+    {
+      "wish": "Mehrere Datensätze gleichzeitig ändern",
+      "feature": "bulk_edit"
+    },
+    {
+      "wish": "Rollen und Berechtigungen für Fachbereiche und Entscheider",
+      "feature": "user_roles"
+    }
+  ],
+  "ownership": {
+    "kundenanfragen": {
+      "kunde": "intent:anfrage-aufnehmen",
+      "eingangsdatum": "intent:anfrage-aufnehmen",
+      "eingangskanal": "intent:anfrage-aufnehmen",
+      "kundenreferenz": "intent:anfrage-aufnehmen",
+      "produktfamilie": "intent:anfrage-aufnehmen",
+      "produktvariante": "intent:anfrage-aufnehmen",
+      "gewuenschte_menge": "intent:anfrage-aufnehmen",
+      "gewuenschter_liefertermin": "intent:anfrage-aufnehmen",
+      "anfragebeschreibung": "intent:anfrage-aufnehmen",
+      "urspruengliche_kundenanforderungen": "intent:anfrage-aufnehmen",
+      "prioritaet": "intent:anfrage-aufnehmen",
+      "verantwortlicher": "intent:anfrage-aufnehmen",
+      "zieltermin_klaerung": "intent:anfrage-aufnehmen",
+      "status": "intent:technischen-abschluss-pruefen",
+      "vollstaendigkeit": "intent:technischen-abschluss-pruefen",
+      "klaerung_abgeschlossen_am": "intent:technischen-abschluss-pruefen",
+      "statusbegruendung": "intent:technischen-abschluss-pruefen",
+      "anfragenummer": "tool:anfragenummer-vergeben",
+      "erneute_pruefung_erforderlich": "tool:anforderung-geaendert-pruefung-markieren",
+      "erneute_pruefung_grund": "tool:anforderung-geaendert-pruefung-markieren"
+    },
+    "informationsquellen": {
+      "anfrage": "intent:anfrage-aufnehmen",
+      "quellentyp": "intent:anfrage-aufnehmen",
+      "titel": "intent:anfrage-aufnehmen",
+      "datei": "intent:anfrage-aufnehmen",
+      "referenz_url": "intent:anfrage-aufnehmen",
+      "absender_oder_urheber": "intent:anfrage-aufnehmen",
+      "quellendatum": "intent:anfrage-aufnehmen",
+      "eingangsdatum": "intent:anfrage-aufnehmen",
+      "quellenstatus": "tool:quelle-ersetzt-pruefung-markieren"
+    },
+    "technische_anforderungen": {
+      "anfrage": "intent:anforderungen-und-punkte-erfassen",
+      "quellen": "intent:anforderungen-und-punkte-erfassen",
+      "bezeichnung": "intent:anforderungen-und-punkte-erfassen",
+      "beschreibung": "intent:anforderungen-und-punkte-erfassen",
+      "anforderungstyp": "intent:anforderungen-und-punkte-erfassen",
+      "ursprung": "intent:anforderungen-und-punkte-erfassen",
+      "sollwert": "intent:anforderungen-und-punkte-erfassen",
+      "einheit": "intent:anforderungen-und-punkte-erfassen",
+      "vergleichsoperator": "intent:anforderungen-und-punkte-erfassen",
+      "min_wert": "intent:anforderungen-und-punkte-erfassen",
+      "max_wert": "intent:anforderungen-und-punkte-erfassen",
+      "ist_pflichtanforderung": "intent:anforderungen-und-punkte-erfassen",
+      "verantwortlicher": "intent:anforderungen-und-punkte-erfassen",
+      "pruefstatus": "intent:antwort-zuordnen",
+      "erneute_pruefung_erforderlich": "intent:antwort-zuordnen",
+      "aenderungsgrund": "intent:antwort-zuordnen"
+    },
+    "offene_punkte": {
+      "anfrage": "intent:anforderungen-und-punkte-erfassen",
+      "betroffene_anforderungen": "intent:anforderungen-und-punkte-erfassen",
+      "betroffene_quellen": "intent:anforderungen-und-punkte-erfassen",
+      "kurztitel": "intent:anforderungen-und-punkte-erfassen",
+      "beschreibung": "intent:anforderungen-und-punkte-erfassen",
+      "punktetyp": "intent:anforderungen-und-punkte-erfassen",
+      "prioritaet": "intent:anforderungen-und-punkte-erfassen",
+      "auswirkung": "intent:anforderungen-und-punkte-erfassen",
+      "zustaendige_rolle": "intent:anforderungen-und-punkte-erfassen",
+      "verantwortlicher": "intent:anforderungen-und-punkte-erfassen",
+      "faellig_am": "intent:anforderungen-und-punkte-erfassen",
+      "erledigungskriterium": "intent:anforderungen-und-punkte-erfassen",
+      "status": "intent:antwort-zuordnen",
+      "antwort_geprueft": "intent:antwort-zuordnen",
+      "loesung_oder_ergebnis": "intent:antwort-zuordnen",
+      "abgeschlossen_am": "intent:antwort-zuordnen",
+      "abschluss_durch": "intent:antwort-zuordnen"
+    },
+    "aufgaben": {
+      "anfrage": "intent:antwort-zuordnen",
+      "offener_punkt": "intent:antwort-zuordnen",
+      "titel": "intent:antwort-zuordnen",
+      "beschreibung": "intent:anforderungen-und-punkte-erfassen",
+      "erwartetes_ergebnis": "intent:antwort-zuordnen",
+      "aufgabentyp": "intent:anforderungen-und-punkte-erfassen",
+      "verantwortlicher": "intent:antwort-zuordnen",
+      "prioritaet": "intent:anforderungen-und-punkte-erfassen",
+      "faellig_am": "intent:anforderungen-und-punkte-erfassen",
+      "status": "intent:antwort-zuordnen",
+      "abgeschlossen_am": "tool:aufgaben-abschlusszeit-setzen"
+    },
+    "rueckfragen_und_kommunikation": {
+      "anfrage": "intent:rueckfrage-vorbereiten",
+      "offener_punkt": "intent:rueckfrage-vorbereiten",
+      "offene_punkte": "intent:rueckfrage-vorbereiten",
+      "kommunikationstyp": "intent:rueckfrage-vorbereiten",
+      "kanal": "intent:rueckfrage-vorbereiten",
+      "absender": "intent:rueckfrage-vorbereiten",
+      "empfaenger": "intent:rueckfrage-vorbereiten",
+      "betreff": "intent:rueckfrage-vorbereiten",
+      "inhalt": "intent:rueckfrage-vorbereiten",
+      "antwort_erwartet_bis": "intent:rueckfrage-vorbereiten",
+      "versandstatus": "intent:rueckfrage-vorbereiten",
+      "antwortstatus": "intent:antwort-zuordnen",
+      "antwort_erhalten_am": "intent:antwort-zuordnen",
+      "antworttext": "intent:antwort-zuordnen",
+      "antwort_geprueft": "intent:antwort-zuordnen",
+      "folgeklaerung_erforderlich": "intent:antwort-zuordnen"
+    },
+    "beurteilungen": {
+      "anfrage": "intent:beurteilung-und-entscheidung",
+      "betroffene_anforderungen": "intent:beurteilung-und-entscheidung",
+      "betroffene_offene_punkte": "intent:beurteilung-und-entscheidung",
+      "zugrunde_liegende_quellen": "intent:beurteilung-und-entscheidung",
+      "beurteilungsgegenstand": "intent:beurteilung-und-entscheidung",
+      "beurteilungsart": "intent:beurteilung-und-entscheidung",
+      "einschaetzung": "intent:beurteilung-und-entscheidung",
+      "fachliche_begruendung": "intent:beurteilung-und-entscheidung",
+      "annahmen": "intent:beurteilung-und-entscheidung",
+      "unsicherheiten": "intent:beurteilung-und-entscheidung",
+      "alternativen": "intent:beurteilung-und-entscheidung",
+      "empfehlung": "intent:beurteilung-und-entscheidung",
+      "ist_ki_vorschlag": "intent:beurteilung-und-entscheidung",
+      "erstellt_von": "intent:beurteilung-und-entscheidung",
+      "pruefstatus": "intent:beurteilung-und-entscheidung"
+    },
+    "entscheidungen": {
+      "anfrage": "intent:beurteilung-und-entscheidung",
+      "betroffene_anforderungen": "intent:beurteilung-und-entscheidung",
+      "betroffene_offene_punkte": "intent:beurteilung-und-entscheidung",
+      "zugrunde_liegende_beurteilungen": "intent:beurteilung-und-entscheidung",
+      "titel": "intent:beurteilung-und-entscheidung",
+      "entscheidungsgegenstand": "intent:beurteilung-und-entscheidung",
+      "entscheidungstyp": "intent:beurteilung-und-entscheidung",
+      "alternativen": "intent:beurteilung-und-entscheidung",
+      "entscheidung": "intent:beurteilung-und-entscheidung",
+      "begruendung": "intent:beurteilung-und-entscheidung",
+      "entscheidungsverantwortlicher": "intent:beurteilung-und-entscheidung",
+      "kompetenz_geprueft": "intent:beurteilung-und-entscheidung",
+      "entscheidungsstatus": "intent:beurteilung-und-entscheidung",
+      "entscheidungsdatum": "intent:beurteilung-und-entscheidung",
+      "auflagen": "intent:beurteilung-und-entscheidung",
+      "gueltig_bis": "intent:beurteilung-und-entscheidung",
+      "ersetzt_durch_entscheidung": "intent:beurteilung-und-entscheidung"
+    },
+    "technischer_abschluss": {
+      "anfrage": "intent:technischen-abschluss-pruefen",
+      "pruefdatum": "intent:technischen-abschluss-pruefen",
+      "geprueft_von": "intent:technischen-abschluss-pruefen",
+      "anforderungen_geprueft": "intent:technischen-abschluss-pruefen",
+      "kritische_punkte_geklaert": "intent:technischen-abschluss-pruefen",
+      "entscheidungen_vorhanden": "intent:technischen-abschluss-pruefen",
+      "freigaben_vorhanden": "intent:technischen-abschluss-pruefen",
+      "verbleibende_abweichungen": "intent:technischen-abschluss-pruefen",
+      "verbleibende_risiken": "intent:technischen-abschluss-pruefen",
+      "uebergabeempfaenger": "intent:technischen-abschluss-pruefen",
+      "uebergabestatus": "intent:technischen-abschluss-pruefen",
+      "zusammenfassung": "intent:technischen-abschluss-pruefen",
+      "freigabestatus": "intent:technischen-abschluss-pruefen"
+    },
+    "kunden": {
+      "kundennummer": "tool:kundennummer-vergeben"
+    }
+  },
+  "dashboard": {
+    "focus": [
+      "Neu eingegangene Anfragen",
+      "Kritische offene Punkte",
+      "Überfällige Aufgaben",
+      "Ausstehende Kundenantworten",
+      "Offene Entscheidungen",
+      "Zur Freigabe vorbereitete Anfragen"
+    ],
+    "hints": [
+      "Kritische offene Punkte (Priorität Kritisch, nicht erledigt) hervorheben",
+      "Aufgaben mit Fälligkeit in der Vergangenheit und Status nicht erledigt als überfällig zeigen",
+      "Anforderungen mit Prüfstatus unklar oder widersprüchlich sichtbar machen",
+      "Kein Status Freigegeben ohne dokumentierten technischen Abschluss anzeigen",
+      "Erfahrungen mit Status ungeprüft, widerlegt oder überholt nicht als Empfehlung darstellen"
+    ],
+    "wishes": []
+  }
+}
